@@ -193,7 +193,7 @@ export function LoginPage1() {
           {/* Sign Up Link */}
           <p className='mt-6 flex justify-center gap-1 text-center text-sm'>
             <span>Don't have an account?</span>
-            <a href='#' className='underline underline-offset-4'>
+            <a href='/signup' className='underline underline-offset-4'>
               Create an account
             </a>
           </p>
