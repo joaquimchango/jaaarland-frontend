@@ -5,7 +5,7 @@ import Header from './components/header'
 import Footer from './components/footer'
 import Homepage from './pages/Homepage'
 import Login from './pages/LoginPage'
-import SignUpPage from './pages/SignupPage'
+import SignUpPage from './pages/SignUpPage'
 import Products from './pages/Products'
 import ProductDetail from './pages/ProductDetail'
 import OrderHistory from "./pages/OrderHistory"
