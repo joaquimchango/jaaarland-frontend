@@ -23,6 +23,7 @@ export function ProductOverview1() {
   const [carouselApi, setCarouselApi] = useState()
 
   const currentProduct = product || productDetails
+  const currentProductId = currentProduct?._id || currentProduct?.id || id
   const images =
     currentProduct?.image || currentProduct?.images?.length
       ? [{ id: 'main', src: currentProduct.image || currentProduct.images[0].src, alt: currentProduct.name || 'Product image' }]
@@ -175,10 +176,14 @@ export function ProductOverview1() {
                   }
 
                   try {
+                    if (!currentProductId) {
+                      throw new Error('This product does not have a valid id')
+                    }
+
                     await addToCart(
                       {
                         ...currentProduct,
-                        _id: currentProduct?._id || id,
+                        _id: currentProductId,
                         price: Number(currentProduct.price ?? 0),
                       },
                       quantity
