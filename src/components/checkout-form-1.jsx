@@ -15,7 +15,7 @@ import { CheckoutForm1Progress } from './checkout-form-1-progress'
 import { CheckoutForm1ShippingStep } from './checkout-form-1-shipping-step'
 import { AuthContext } from '../context/auth.context'
 import { createOrder } from '../services/ordersService'
-import { getCart } from '../services/cartService'
+import { clearCart, getCart } from '../services/cartService'
 
 const STEP_COPY = [
   { title: 'Contact Information', description: "We'll use this to send you order updates" },
@@ -95,6 +95,7 @@ export function CheckoutForm1() {
       }
 
       await createOrder(orderPayload)
+        await clearCart()
       navigate('/orders', { replace: true })
     } catch (err) {
       const message = err?.response?.data?.message || err?.message || 'Unable to complete your order.'

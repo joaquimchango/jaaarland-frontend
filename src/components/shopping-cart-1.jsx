@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Trash2, Minus, Plus, ShoppingBag, Package, Shield, CreditCard, Store, MoveRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -10,6 +11,7 @@ import { cn } from '@/lib/utils'
 import { removeFromCart, updateQuantity as updateCartQuantity } from '@/services/cartService'
 
 export function ShoppingCart1({ cart }) {
+  const navigate = useNavigate()
   const [items, setItems] = useState([])
   const [isRemoving, setIsRemoving] = useState(null)
 
@@ -214,6 +216,7 @@ export function ShoppingCart1({ cart }) {
                 size='lg'
                 className='mt-4 h-10 w-full cursor-pointer px-8 text-base font-medium'
                 disabled={items.length === 0}
+                onClick={() => navigate('/checkout')}
               >
                 <ShoppingBag data-icon='inline-start' />
                 Proceed to Checkout

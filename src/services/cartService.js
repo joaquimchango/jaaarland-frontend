@@ -1,232 +1,94 @@
-import api from './api'
+const CART_STORAGE_KEY = 'cart'
 
-const CART_STORAGE_KEY = 'cartId'
+const emptyCart = () => ({
+  products: [],
+  total: 0,
+})
 
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('authToken')
+const readCart = () => {
+  try {
+    const storedCart = localStorage.getItem(CART_STORAGE_KEY)
+    const cart = storedCart ? JSON.parse(storedCart) : emptyCart()
 
-  return token
-    ? {
-        Authorization: `Bearer ${token}`,
-      }
-    : {}
-}
-
-const getStoredCartId = () => localStorage.getItem(CART_STORAGE_KEY)
-
-const setStoredCartId = (cartId) => {
-  if (!cartId) {
-    localStorage.removeItem(CART_STORAGE_KEY)
-    return
+    return {
+      products: Array.isArray(cart.products) ? cart.products : [],
+      total: Number(cart.total) || 0,
+    }
+  } catch {
+    return emptyCart()
   }
-
-  localStorage.setItem(CART_STORAGE_KEY, cartId)
 }
 
-const normalizeCartItems = (items) => items.map((item) => ({
-  product: item?.product?._id || item?.product,
-  quantity: Number(item?.quantity) || 1,
-  price: Number(item?.price) || 0,
-}))
+const writeCart = (products) => {
+  const total = products.reduce(
+    (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1),
+    0
+  )
+  const cart = { products, total }
 
-export const getCart = async () => {
-  const cartId = getStoredCartId()
-
-  if (!cartId) {
-    return null
-  }
-
-  const response = await api.get(`/api/cart/${cartId}`, {
-    headers: getAuthHeaders(),
-  })
-
-  return response.data
+  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart))
+  return cart
 }
+
+export const getCart = async () => readCart()
 
 export const addToCart = async (product, quantity = 1) => {
   if (!product) {
     throw new Error('A product is required to add to cart')
   }
 
-  const token = localStorage.getItem('authToken')
-
-  if (!token) {
-    throw new Error('Please log in to add items to your cart')
-  }
-
   const productId = product._id || product.id
-  const productPrice = Number(product.price ?? 0)
-  const cartId = getStoredCartId()
-
-  if (!/^[a-f\d]{24}$/i.test(String(productId || ''))) {
-    throw new Error('This product cannot be added because it has no valid database id')
+  if (!productId) {
+    throw new Error('This product cannot be added because it has no id')
   }
 
-  const cartItem = {
-    product: productId,
-    quantity: Number(quantity) || 1,
-    price: productPrice,
-  }
-
-  if (!cartId) {
-    const response = await api.post(
-      '/api/cart',
-      {
-        products: [cartItem],
-        total: productPrice * (Number(quantity) || 1),
-      },
-      {
-        headers: getAuthHeaders(),
-      }
-    )
-
-    setStoredCartId(response.data?._id)
-    return response.data
-  }
-
-  let existingCartResponse
-
-  try {
-    existingCartResponse = await api.get(`/api/cart/${cartId}`, {
-      headers: getAuthHeaders(),
-    })
-  } catch (error) {
-    if (error.response?.status !== 404) {
-      throw error
-    }
-
-    setStoredCartId(null)
-    const response = await api.post(
-      '/api/cart',
-      {
-        products: [cartItem],
-        total: productPrice * (Number(quantity) || 1),
-      },
-      { headers: getAuthHeaders() }
-    )
-
-    setStoredCartId(response.data?._id)
-    return response.data
-  }
-
-  const existingProducts = Array.isArray(existingCartResponse.data?.products) ? existingCartResponse.data.products : []
-  const cartIndex = existingProducts.findIndex((item) => {
-    const itemProductId = item?.product?._id || item?.product
-    return itemProductId === productId
+  const cart = readCart()
+  const productPrice = Number(product.price || 0)
+  const itemQuantity = Number(quantity) || 1
+  const existingIndex = cart.products.findIndex((item) => {
+    const itemProductId = item?.product?._id || item?.product?.id || item?.product
+    return String(itemProductId) === String(productId)
   })
+  const products = [...cart.products]
 
-  let updatedProducts = normalizeCartItems(existingProducts)
-
-  if (cartIndex >= 0) {
-    const currentItem = updatedProducts[cartIndex]
-    updatedProducts[cartIndex] = {
-      ...currentItem,
-      quantity: Number(currentItem.quantity || 0) + Number(quantity || 1),
+  if (existingIndex >= 0) {
+    products[existingIndex] = {
+      ...products[existingIndex],
+      product,
+      quantity: Number(products[existingIndex].quantity || 0) + itemQuantity,
       price: productPrice,
     }
   } else {
-    updatedProducts.push(cartItem)
+    products.push({ product, quantity: itemQuantity, price: productPrice })
   }
 
-  const total = updatedProducts.reduce((sum, item) => {
-    const itemPrice = Number(item.price ?? 0)
-    const itemQuantity = Number(item.quantity ?? 1)
-    return sum + itemPrice * itemQuantity
-  }, 0)
-
-  const response = await api.patch(
-    `/api/cart/${cartId}`,
-    {
-      products: updatedProducts,
-      total,
-    },
-    {
-      headers: getAuthHeaders(),
-    }
-  )
-
-  return response.data
+  return writeCart(products)
 }
 
 export const removeFromCart = async (productId) => {
-  const cartId = getStoredCartId()
-
-  if (!cartId) {
-    return null
-  }
-
-  const currentCart = await getCart()
-  const products = Array.isArray(currentCart?.products) ? currentCart.products : []
-  const updatedProducts = normalizeCartItems(products).filter((item) => {
-    const itemProductId = item?.product?._id || item?.product
-    return itemProductId !== productId
+  const cart = readCart()
+  const products = cart.products.filter((item) => {
+    const itemProductId = item?.product?._id || item?.product?.id || item?.product
+    return String(itemProductId) !== String(productId)
   })
 
-  const total = updatedProducts.reduce((sum, item) => {
-    const itemPrice = Number(item.price ?? 0)
-    const itemQuantity = Number(item.quantity ?? 1)
-    return sum + itemPrice * itemQuantity
-  }, 0)
-
-  const response = await api.patch(
-    `/api/cart/${cartId}`,
-    { products: updatedProducts, total },
-    { headers: getAuthHeaders() }
-  )
-
-  return response.data
+  return writeCart(products)
 }
 
 export const clearCart = async () => {
-  const cartId = getStoredCartId()
-
-  if (!cartId) {
-    return null
-  }
-
-  const response = await api.patch(
-    `/api/cart/${cartId}`,
-    { products: [], total: 0 },
-    { headers: getAuthHeaders() }
-  )
-
-  setStoredCartId(null)
-  return response.data
+  localStorage.removeItem(CART_STORAGE_KEY)
+  return emptyCart()
 }
 
 export const updateQuantity = async (productId, quantity) => {
-  const cartId = getStoredCartId()
+  const cart = readCart()
+  const products = cart.products.map((item) => {
+    const itemProductId = item?.product?._id || item?.product?.id || item?.product
 
-  if (!cartId) {
-    return null
-  }
-
-  const currentCart = await getCart()
-  const products = Array.isArray(currentCart?.products) ? currentCart.products : []
-  const updatedProducts = normalizeCartItems(products).map((item) => {
-    const itemProductId = item?.product?._id || item?.product
-
-    if (itemProductId === productId) {
-      return {
-        ...item,
-        quantity: Number(quantity) || 1,
-      }
-    }
-
-    return item
+    return String(itemProductId) === String(productId)
+      ? { ...item, quantity: Math.max(1, Number(quantity) || 1) }
+      : item
   })
 
-  const total = updatedProducts.reduce((sum, item) => {
-    const itemPrice = Number(item.price ?? 0)
-    const itemQuantity = Number(item.quantity ?? 1)
-    return sum + itemPrice * itemQuantity
-  }, 0)
-
-  const response = await api.patch(
-    `/api/cart/${cartId}`,
-    { products: updatedProducts, total },
-    { headers: getAuthHeaders() }
-  )
-
-  return response.data
-};
+  return writeCart(products)
+}
