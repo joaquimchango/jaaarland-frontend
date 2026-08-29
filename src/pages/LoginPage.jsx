@@ -1,7 +1,9 @@
+import {LoginPage1} from "../components/login-page-1";
+
 export default function LoginPage() {
   return (
     <div>
-      <h1>Login</h1>
+      <LoginPage1 />
     </div>
   );
 }

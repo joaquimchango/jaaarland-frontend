@@ -1,7 +1,9 @@
+import {CheckoutForm1} from "../components/checkout-form-1";
+
 export default function CheckoutPage() {
   return (
     <div>
-      <h1>Checkout</h1>
+      <CheckoutForm1 />
     </div>
   );
 }

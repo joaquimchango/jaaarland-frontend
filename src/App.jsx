@@ -13,6 +13,8 @@ import OrderDetails from './pages/OrderDetails'
 import Cartpage from './pages/Cartpage'
 import NotFound from './pages/NotFound'
 import CheckoutPage from './pages/CheckoutPage'
+
+
 function App() {
   const { loading } = useContext(AuthContext)
 
@@ -21,7 +23,7 @@ function App() {
   }
 
   return (
-    <div className="App width-full m-4">
+    <div className="App width-full align-center m-4">
       <Header />
       <Routes>
         <Route path="/" element={<Homepage />} />
