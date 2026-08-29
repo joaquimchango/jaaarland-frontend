@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import {Link} from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -91,18 +92,23 @@ export function StorefrontHero2() {
             </div>
 
             <div className='flex items-center gap-4'>
-              <Button size='lg' className='h-10 cursor-pointer rounded-full px-4'>
-                Shop Now
-                <ArrowRight />
-              </Button>
-              <Button
-                size='lg'
-                variant='outline'
-                className='h-10 cursor-pointer rounded-full px-4 justify-center'
-              >
-                <ShoppingBag />
-                View Catalog
-              </Button>
+              <Link to="/products">
+                <Button  size='lg' className='h-10 cursor-pointer rounded-full px-4'>
+                  Shop Now
+                  <ArrowRight />
+                </Button>
+              </Link>
+              <Link to="/products">
+                <Button
+                   onClick={() => {useNavigate('/products')}}
+                  size='lg'
+                  variant='outline'
+                  className='h-10 cursor-pointer rounded-full px-4 justify-center'
+                >
+                  <ShoppingBag />
+                  View Catalog
+                </Button>
+              </Link>
             </div>
           </header>
 
