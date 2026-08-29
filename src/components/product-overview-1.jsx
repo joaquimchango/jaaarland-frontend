@@ -23,7 +23,7 @@ export function ProductOverview1() {
   const [carouselApi, setCarouselApi] = useState()
 
   const currentProduct = product || productDetails
-  const currentProductId = currentProduct?._id || currentProduct?.id || id
+  const currentProductId = product?._id || product?.id
   const images =
     currentProduct?.image || currentProduct?.images?.length
       ? [{ id: 'main', src: currentProduct.image || currentProduct.images[0].src, alt: currentProduct.name || 'Product image' }]
