@@ -181,7 +181,7 @@ export function SignUpPage1() {
           {/* Sign In Link */}
           <p className='mt-6 flex justify-center gap-1 text-center text-sm'>
             <span>Already have an account?</span>
-            <a href='#' className='underline underline-offset-4'>
+            <a href='/login' className='underline underline-offset-4'>
               Sign In
             </a>
           </p>
