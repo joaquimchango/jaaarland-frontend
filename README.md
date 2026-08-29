@@ -37,7 +37,8 @@ This project serves as an educational example and a reusable template for aspiri
 - **Mongoose** - MongoDB object modeling
 - **EJS/Handlebars** - Template engine for dynamic page rendering
 - **Axios/Fetch API** - HTTP client for API requests
-- **Bootstrap/Tailwind CSS** - CSS framework for responsive design (if applicable)
+- **Bootstrap/Tailwind CSS** - 
+-Shadcn and ShadcnStore
 
 ## 🏗️ How It's Built
 
