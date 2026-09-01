@@ -44,7 +44,7 @@ export function LoginPage1() {
       }
 
       storeToken(token)
-      await authenticateUser()
+      authenticateUser()
       navigate('/', { replace: true })
     } catch (err) {
       const message = err?.response?.data?.message || err?.message || 'Unable to sign in.'

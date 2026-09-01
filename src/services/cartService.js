@@ -1,94 +1,188 @@
-const CART_STORAGE_KEY = 'cart'
 
-const emptyCart = () => ({
-  products: [],
-  total: 0,
-})
+import api from './api'
 
-const readCart = () => {
-  try {
-    const storedCart = localStorage.getItem(CART_STORAGE_KEY)
-    const cart = storedCart ? JSON.parse(storedCart) : emptyCart()
+const CART_STORAGE_KEY = 'cartId'
 
-    return {
-      products: Array.isArray(cart.products) ? cart.products : [],
-      total: Number(cart.total) || 0,
-    }
-  } catch {
-    return emptyCart()
-  }
+const getAuthConfig = () => {
+  const token = localStorage.getItem('authToken')
+
+  return token
+    ? {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    : {}
 }
 
-const writeCart = (products) => {
-  const total = products.reduce(
-    (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 1),
-    0
-  )
-  const cart = { products, total }
-
-  localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart))
-  return cart
-}
-
-export const getCart = async () => readCart()
-
-export const addToCart = async (product, quantity = 1) => {
+const resolveProductId = (product) => {
   if (!product) {
-    throw new Error('A product is required to add to cart')
+    return null
   }
 
-  const productId = product._id || product.id
-  if (!productId) {
-    throw new Error('This product cannot be added because it has no id')
+  if (typeof product === 'string' || typeof product === 'number') {
+    return String(product)
   }
 
-  const cart = readCart()
-  const productPrice = Number(product.price || 0)
-  const itemQuantity = Number(quantity) || 1
-  const existingIndex = cart.products.findIndex((item) => {
-    const itemProductId = item?.product?._id || item?.product?.id || item?.product
-    return String(itemProductId) === String(productId)
-  })
-  const products = [...cart.products]
+  return String(product._id || product.id)
+}
 
-  if (existingIndex >= 0) {
-    products[existingIndex] = {
-      ...products[existingIndex],
-      product,
-      quantity: Number(products[existingIndex].quantity || 0) + itemQuantity,
-      price: productPrice,
+export const getCart = async (cartId = localStorage.getItem(CART_STORAGE_KEY)) => {
+  if (!cartId) {
+    return { _id: null, products: [], total: 0 }
+  }
+
+  const response = await api.get(`/api/cart/${cartId}`, getAuthConfig())
+  return response.data
+}
+
+export const createCart = async (productId, price = 0, quantity = 1) => {
+  const normalizedProductId = resolveProductId(productId)
+
+  if (!normalizedProductId) {
+    throw new Error('A valid product id is required to create the cart')
+  }
+
+  const normalizedPrice = Number(price) || 0
+  const normalizedQuantity = Math.max(1, Number(quantity) || 1)
+
+  const payload = {
+    products: [
+      {
+        product: normalizedProductId,
+        price: normalizedPrice,
+        quantity: normalizedQuantity,
+      },
+    ],
+    total: normalizedPrice * normalizedQuantity,
+  }
+
+  const response = await api.post('/api/cart', payload, getAuthConfig())
+
+  if (response.data?._id) {
+    localStorage.setItem(CART_STORAGE_KEY, response.data._id)
+  }
+
+  return response.data
+}
+
+export const updateCart = async (cartId, productId, price = 0, quantity = 1) => {
+  const storedCartId = cartId || localStorage.getItem(CART_STORAGE_KEY)
+
+  if (!storedCartId) {
+    return createCart(productId, price, quantity)
+  }
+
+  const cart = await getCart(storedCartId)
+  const safeProducts = Array.isArray(cart?.products) ? cart.products : []
+  const normalizedProductId = resolveProductId(productId)
+  const normalizedPrice = Number(price) || 0
+  const normalizedQuantity = Math.max(1, Number(quantity) || 1)
+
+  if (!normalizedProductId) {
+    throw new Error('A valid product id is required to update the cart')
+  }
+
+  const existingProductIndex = safeProducts.findIndex(
+    (item) => String(item?.product) === String(normalizedProductId)
+  )
+
+  const updatedProducts = [...safeProducts]
+
+  if (existingProductIndex >= 0) {
+    updatedProducts[existingProductIndex] = {
+      ...updatedProducts[existingProductIndex],
+      product: normalizedProductId,
+      price: normalizedPrice,
+      quantity: normalizedQuantity,
     }
   } else {
-    products.push({ product, quantity: itemQuantity, price: productPrice })
+    updatedProducts.push({
+      product: normalizedProductId,
+      price: normalizedPrice,
+      quantity: normalizedQuantity,
+    })
   }
 
-  return writeCart(products)
+  const total = updatedProducts.reduce((sum, item) => {
+    return sum + Number(item?.price || 0) * Number(item?.quantity || 0)
+  }, 0)
+
+  const response = await api.patch(`/api/cart/${storedCartId}`, {
+    products: updatedProducts,
+    total,
+  }, getAuthConfig())
+
+  if (response.data?._id) {
+    localStorage.setItem(CART_STORAGE_KEY, response.data._id)
+  }
+
+  return response.data
 }
 
-export const removeFromCart = async (productId) => {
-  const cart = readCart()
-  const products = cart.products.filter((item) => {
-    const itemProductId = item?.product?._id || item?.product?.id || item?.product
-    return String(itemProductId) !== String(productId)
-  })
+export const addToCart = async (productId, price = 0, quantity = 1) => {
+  const normalizedProductId = resolveProductId(productId)
 
-  return writeCart(products)
+  if (!normalizedProductId) {
+    throw new Error('A valid product id is required to add to cart')
+  }
+
+  const storedCartId = localStorage.getItem(CART_STORAGE_KEY)
+
+  if (!storedCartId) {
+    return createCart(normalizedProductId, price, quantity)
+  }
+
+  return updateCart(storedCartId, normalizedProductId, price, quantity)
 }
 
-export const clearCart = async () => {
+export const removeFromCart = async (productId, cartId = localStorage.getItem(CART_STORAGE_KEY)) => {
+  if (!cartId) {
+    return { _id: null, products: [], total: 0 }
+  }
+
+  const cart = await getCart(cartId)
+  const safeProducts = Array.isArray(cart?.products) ? cart.products : []
+  const normalizedProductId = resolveProductId(productId)
+
+  const remainingProducts = safeProducts.filter(
+    (item) => String(item?.product) !== String(normalizedProductId)
+  )
+
+  const total = remainingProducts.reduce((sum, item) => {
+    return sum + Number(item?.price || 0) * Number(item?.quantity || 0)
+  }, 0)
+
+  const response = await api.patch(`/api/cart/${cartId}`, {
+    products: remainingProducts,
+    total,
+  }, getAuthConfig())
+
+  return response.data
+}
+
+export const clearCart = async (cartId = localStorage.getItem(CART_STORAGE_KEY)) => {
+  if (!cartId) {
+    localStorage.removeItem(CART_STORAGE_KEY)
+    return { _id: null, products: [], total: 0 }
+  }
+
+  const response = await api.delete(`/api/cart/${cartId}`, getAuthConfig())
   localStorage.removeItem(CART_STORAGE_KEY)
-  return emptyCart()
+  return response.data
 }
 
-export const updateQuantity = async (productId, quantity) => {
-  const cart = readCart()
-  const products = cart.products.map((item) => {
-    const itemProductId = item?.product?._id || item?.product?.id || item?.product
+export const updateQuantity = async (productId, quantity, cartId = localStorage.getItem(CART_STORAGE_KEY)) => {
+  const storedCartId = cartId || localStorage.getItem(CART_STORAGE_KEY)
 
-    return String(itemProductId) === String(productId)
-      ? { ...item, quantity: Math.max(1, Number(quantity) || 1) }
-      : item
-  })
+  if (!storedCartId) {
+    return createCart(productId, 0, quantity)
+  }
 
-  return writeCart(products)
+  const cart = await getCart(storedCartId)
+  const safeProducts = Array.isArray(cart?.products) ? cart.products : []
+  const normalizedProductId = resolveProductId(productId)
+  const existingItem = safeProducts.find((item) => String(item?.product) === String(normalizedProductId))
+
+  return updateCart(storedCartId, normalizedProductId, existingItem?.price || 0, quantity)
 }

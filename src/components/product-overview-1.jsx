@@ -181,11 +181,8 @@ export function ProductOverview1() {
                     }
 
                     await addToCart(
-                      {
-                        ...currentProduct,
-                        _id: currentProductId,
-                        price: Number(currentProduct.price ?? 0),
-                      },
+                      currentProductId,
+                      Number(currentProduct.price ?? 0),
                       quantity
                     )
                   } catch (error) {

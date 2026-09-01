@@ -23,17 +23,17 @@ export default function Header() {
           <Link
             to={isLoggedIn ? "/orders" : "/login"}
             aria-label="User account"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-white transition hover:bg-white/10"
+            className="flex-row h-9 w-9 p-2 items-center  rounded-full bg-white/5 text-white transition hover:bg-white/10"
           >
-            <UserIcon size={18} color="#ffffff" strokeWidth={2} />
+            <UserIcon size={30} color="#ffffff" strokeWidth={2} />
           </Link>
 
           <Link
             to="/cart"
             aria-label="Shopping cart"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-white transition hover:bg-white/10"
+            className="flex-row h-9 w-9 items-center justify-center rounded-full bg-white/5 text-white transition hover:bg-white/10"
           >
-            <CartShoppingIcon size={18} color="#ffffff" strokeWidth={2} />
+            <CartShoppingIcon size={8} color="#ffffff" strokeWidth={2} />
           </Link>
         </div>
       </div>
